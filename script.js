@@ -19,7 +19,7 @@ async function analyzeCode() {
     result.style.display = "none";
 
     try {
-        const response = await fetch("http://127.0.0.1:5000/analyze", {
+        const response = await fetch("/analyze", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -30,7 +30,11 @@ async function analyzeCode() {
             })
         });
 
-        const data = await response.json();
+        if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+}
+
+const data = await response.json();
 
         loader.style.display = "none";
         result.style.display = "block";
