@@ -1,8 +1,11 @@
 // ---------------- GLOBAL HISTORY ----------------
 let scanHistory = [];
 
+
 // ---------------- ANALYZE CODE ----------------
+
 async function analyzeCode() {
+
     const code = document.getElementById("codeInput").value;
     const lang = document.getElementById("language").value;
 
@@ -10,226 +13,500 @@ async function analyzeCode() {
     const result = document.getElementById("resultBox");
     const historyBox = document.getElementById("historyBox");
 
+
     if (!code.trim()) {
         alert("Please enter code first!");
         return;
     }
+
 
     loader.style.display = "block";
     result.style.display = "none";
 
+
     try {
+
         const response = await fetch("/analyze", {
+
             method: "POST",
+
             headers: {
                 "Content-Type": "application/json"
             },
+
             body: JSON.stringify({
+
                 code: code,
                 language: lang
+
             })
+
         });
 
-        if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-}
 
-const data = await response.json();
+        if (!response.ok) {
+
+            throw new Error(
+                `Server Error: ${response.status}`
+            );
+
+        }
+
+
+        const data = await response.json();
+
+
+        console.log(
+            "Gemini Response:",
+            data
+        );
+
 
         loader.style.display = "none";
         result.style.display = "block";
 
-        const fixed = data.fixedCode;
 
-        // ---------------- BUG INFO ----------------
-        let title = "Syntax / Logic Bug Detected";
-        let desc = detectBugDescription(code);
-        let severityText = "🟠 Warning";
+        // ---------------- AI RESPONSE ----------------
 
-        document.getElementById("bugTitle").innerText = title;
-        document.getElementById("bugDesc").innerText = desc;
 
-        const severityLabel = document.getElementById("severityLabel");
-        severityLabel.innerText = severityText;
-        severityLabel.className = "warning";
+        const title =
+            data.title ||
+            "No Bug Information";
 
-        document.getElementById("lineInfo").innerText =
-            detectBugLine(code);
 
-        // ---------------- COMPARE PANEL ----------------
-        document.getElementById("originalCode").innerText = code;
-        document.getElementById("fixedCode").innerText = fixed;
+        const description =
+            data.description ||
+            "No description provided";
 
-        // ---------------- ADD TO HISTORY ----------------
+
+        const severity =
+            data.severity ||
+            "Unknown";
+
+
+        const line =
+            data.lineInfo ||
+            "Not available";
+
+
+        const fixedCode =
+            data.fixedCode ||
+            code;
+
+
+
+        // ---------------- DISPLAY RESULT ----------------
+
+
+        document.getElementById(
+            "bugTitle"
+        ).innerText = title;
+
+
+
+        document.getElementById(
+            "bugDesc"
+        ).innerText = description;
+
+
+
+        document.getElementById(
+            "severityLabel"
+        ).innerText =
+            "Severity: " + severity;
+
+
+
+        document.getElementById(
+            "lineInfo"
+        ).innerText =
+            line;
+
+
+
+        document.getElementById(
+            "originalCode"
+        ).innerText =
+            code;
+
+
+
+        document.getElementById(
+            "fixedCode"
+        ).innerText =
+            fixedCode;
+
+
+
+        // ---------------- HISTORY ----------------
+
+
         scanHistory.unshift({
-            time: new Date().toLocaleString(),
-            language: lang,
-            original: code,
-            fixed: fixed,
-            title: title,
-            description: desc,
-            severity: severityText
+
+            time:
+            new Date()
+            .toLocaleString(),
+
+            language:
+            lang,
+
+            original:
+            code,
+
+            fixed:
+            fixedCode,
+
+            title:
+            title,
+
+            description:
+            description,
+
+            severity:
+            severity
+
         });
 
-        // ---------------- UPDATE HISTORY UI ----------------
-        if (historyBox) {
-            historyBox.innerHTML = scanHistory.map((h, i) => `
+
+
+        if(historyBox){
+
+
+            historyBox.innerHTML =
+
+
+            scanHistory.map(
+            (item,index)=>{
+
+
+                return `
+
                 <div class="history-item">
-                    <b>${i + 1}. [${h.time}] (${h.language}) - ${h.severity}</b>
-                    <p><b>Title:</b> ${h.title}</p>
-                    <p><b>Description:</b> ${h.description}</p>
-                    <pre>${h.original}</pre>
-                    <pre>${h.fixed}</pre>
+
+
+                <h3>
+                ${index+1}.
+                ${item.language}
+                |
+                ${item.severity}
+                </h3>
+
+
+                <p>
+                <b>Title:</b>
+                ${item.title}
+                </p>
+
+
+                <p>
+                <b>Description:</b>
+                ${item.description}
+                </p>
+
+
+                <h4>
+                Original Code
+                </h4>
+
+
+                <pre>
+${item.original}
+                </pre>
+
+
+                <h4>
+                Fixed Code
+                </h4>
+
+
+                <pre>
+${item.fixed}
+                </pre>
+
+
                 </div>
-            `).join("");
+
+                `;
+
+
+            }).join("");
+
         }
 
-    } catch (error) {
-        loader.style.display = "none";
-        alert("Backend or model server is not running!");
-        console.error(error);
+
+
     }
+
+    catch(error){
+
+
+        loader.style.display =
+        "none";
+
+
+        alert(
+            "AI server connection failed!"
+        );
+
+
+        console.error(
+            error
+        );
+
+    }
+
 }
 
-// ---------------- BUG DESCRIPTION ----------------
-function detectBugDescription(code) {
-    if (code.includes("pritn")) {
-        return "Typographical error in print statement";
-    }
 
-    if (
-        code.includes("printf(") &&
-        !code.includes(";")
-    ) {
-        return "Missing semicolon in C print statement";
-    }
 
-    if (
-        code.includes("cout") &&
-        !code.includes(";")
-    ) {
-        return "Missing semicolon in C++ output statement";
-    }
 
-    if (
-        code.includes("System.out.println") &&
-        !code.includes(";")
-    ) {
-        return "Missing semicolon in Java print statement";
-    }
 
-    if (
-        code.includes("def") &&
-        !code.includes(":")
-    ) {
-        return "Missing colon in Python function definition";
-    }
+// ---------------- DOWNLOAD FIXED CODE ----------------
 
-    return "Code issue detected and corrected successfully";
-}
 
-// ---------------- BUG LINE DETECTION ----------------
-function detectBugLine(code) {
-    const lines = code.split("\n");
+function downloadFixedCode(){
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
 
-        if (line.includes("pritn")) {
-            return `Line ${i + 1} → Typographical error`;
-        }
+    const fixedCode =
+    document.getElementById(
+        "fixedCode"
+    ).innerText;
 
-        if (
-            line.includes("printf(") &&
-            !line.includes(";")
-        ) {
-            return `Line ${i + 1} → Missing semicolon`;
-        }
 
-        if (
-            line.includes("cout") &&
-            !line.includes(";")
-        ) {
-            return `Line ${i + 1} → Missing semicolon`;
-        }
 
-        if (
-            line.includes("System.out.println") &&
-            !line.includes(";")
-        ) {
-            return `Line ${i + 1} → Missing semicolon`;
-        }
+    const lang =
+    document.getElementById(
+        "language"
+    ).value;
 
-        if (
-            line.includes("def") &&
-            !line.includes(":")
-        ) {
-            return `Line ${i + 1} → Missing colon`;
-        }
-    }
 
-    return "Line-level issue identified successfully";
-}
 
-// ---------------- DOWNLOAD FUNCTION ----------------
-function downloadFixedCode() {
-    const fixedCode = document.getElementById("fixedCode").innerText;
-    const lang = document.getElementById("language").value;
+    if(!fixedCode.trim()){
 
-    if (!fixedCode.trim()) {
-        alert("No fixed code available!");
+        alert(
+            "No fixed code available!"
+        );
+
         return;
+
     }
 
-    let extension = "txt";
 
-    if (lang === "python") extension = "py";
-    else if (lang === "c") extension = "c";
-    else if (lang === "cpp") extension = "cpp";
-    else if (lang === "java") extension = "java";
 
-    const blob = new Blob([fixedCode], { type: "text/plain" });
-    const link = document.createElement("a");
+    let extension =
+    "txt";
 
-    link.href = URL.createObjectURL(blob);
-    link.download = `fixed_code.${extension}`;
+
+
+    if(lang==="python")
+        extension="py";
+
+
+    else if(lang==="c")
+        extension="c";
+
+
+    else if(lang==="cpp")
+        extension="cpp";
+
+
+    else if(lang==="java")
+        extension="java";
+
+
+    else if(lang==="javascript")
+        extension="js";
+
+
+
+
+    const blob =
+    new Blob(
+        [fixedCode],
+        {
+            type:"text/plain"
+        }
+    );
+
+
+
+    const link =
+    document.createElement(
+        "a"
+    );
+
+
+
+    link.href =
+    URL.createObjectURL(
+        blob
+    );
+
+
+
+    link.download =
+    `fixed_code.${extension}`;
+
+
 
     document.body.appendChild(link);
+
+
     link.click();
+
+
     document.body.removeChild(link);
+
+
 }
 
-// ---------------- CODE COMPLEXITY ----------------
-function analyzeComplexity() {
-    const code = document.getElementById("codeInput").value;
-    const box = document.getElementById("complexityBox");
 
-    if (!code.trim()) {
-        alert("Please enter code first!");
+
+
+
+
+// ---------------- COMPLEXITY ANALYSIS ----------------
+
+
+function analyzeComplexity(){
+
+
+    const code =
+    document.getElementById(
+        "codeInput"
+    ).value;
+
+
+
+    const box =
+    document.getElementById(
+        "complexityBox"
+    );
+
+
+
+    if(!code.trim()){
+
+        alert(
+            "Please enter code first!"
+        );
+
         return;
+
     }
 
-    const lines = code
-        .split("\n")
-        .filter(line => line.trim() !== "")
-        .length;
 
-    const functions = (code.match(/function|def/g) || []).length;
-    const loops = (code.match(/for|while/g) || []).length;
-    const conditions = (code.match(/if|else if|switch/g) || []).length;
 
-    let level = "Low";
+    const lines =
+    code
+    .split("\n")
+    .filter(
+        line =>
+        line.trim() !== ""
+    )
+    .length;
 
-    if (loops >= 2 || conditions >= 3) level = "Medium";
-    if (loops >= 3 || functions >= 3) level = "High";
 
-    box.style.display = "block";
+
+    const functions =
+    (
+        code.match(
+            /function|def/g
+        )
+        ||
+        []
+    )
+    .length;
+
+
+
+    const loops =
+    (
+        code.match(
+            /for|while/g
+        )
+        ||
+        []
+    )
+    .length;
+
+
+
+    const conditions =
+    (
+        code.match(
+            /if|else|switch/g
+        )
+        ||
+        []
+    )
+    .length;
+
+
+
+    let level =
+    "Low";
+
+
+
+    if(
+        loops >=2 ||
+        conditions >=3
+    )
+        level="Medium";
+
+
+
+    if(
+        loops>=3 ||
+        functions>=3
+    )
+        level="High";
+
+
+
+    box.style.display =
+    "block";
+
+
+
     box.innerHTML = `
-        <h2>📊 Code Complexity Report</h2>
-        <p><b>Total Lines:</b> ${lines}</p>
-        <p><b>Functions:</b> ${functions}</p>
-        <p><b>Loops:</b> ${loops}</p>
-        <p><b>Conditions:</b> ${conditions}</p>
-        <p><b>Complexity Level:</b> ${level}</p>
+
+    <h2>
+    📊 Code Complexity Report
+    </h2>
+
+
+    <p>
+    <b>Total Lines:</b>
+    ${lines}
+    </p>
+
+
+    <p>
+    <b>Functions:</b>
+    ${functions}
+    </p>
+
+
+    <p>
+    <b>Loops:</b>
+    ${loops}
+    </p>
+
+
+    <p>
+    <b>Conditions:</b>
+    ${conditions}
+    </p>
+
+
+    <p>
+    <b>Complexity Level:</b>
+    ${level}
+    </p>
+
     `;
+
+
 }
