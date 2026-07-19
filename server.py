@@ -31,53 +31,20 @@ def files(filename):
 @app.route("/analyze", methods=["POST"])
 def analyze():
 
-    data = request.json
+    data = request.get_json()
 
     code = data.get("code", "")
-    language = data.get("language", "")
+    language = data.get("language", "python")
 
-    prompt = f"""
-You are a professional code auto-fixer.
+    # Temporary response for testing
+    fixed_code = f"""# Fixed {language} code
 
-STRICT RULES:
-- Output ONLY corrected {language} code
-- No explanation
-- No comments
-- No markdown
-- No triple backticks
-- No extra words
-
-INPUT CODE:
 {code}
-
-FINAL FIXED CODE:
 """
 
-    try:
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": "qwen2.5-coder:7b",
-                "prompt": prompt,
-                "stream": False
-            },
-            timeout=60
-        )
-
-        result = response.json()["response"].strip()
-
-        result = re.sub(r"```.*?\n", "", result)
-        result = result.replace("```", "").strip()
-
-        return jsonify({
-            "fixedCode": result
-        })
-
-    except Exception as e:
-        return jsonify({
-            "error": str(e)
-        }), 500
-
+    return jsonify({
+        "fixedCode": fixed_code
+    })
 
 
 # Render Deployment
