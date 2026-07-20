@@ -23,7 +23,7 @@ else:
     print("Gemini API Key not found")
 
 
-model = genai.GenerativeModel("gemini-2.5-flash")
+model = genai.GenerativeModel("gemini-2.0-flash")
 
 
 # ==========================
